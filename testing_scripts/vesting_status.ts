@@ -1,5 +1,9 @@
-import { VestingScheduleService } from "../vesting_schedule_generator";
+import { VestingScheduleGenerator } from "vesting_schedule_generator_v1";
 import { OcfPackageContent, readOcfPackage } from "../read_ocf_package";
+import { isBefore, parseISO } from "date-fns";
+import { VestingScheduleStatus } from "../vesting_schedule_generator_v1/types";
+import { ExecutionPathBuilder } from "vesting_schedule_generator_v1/ExecutionPathBuilder";
+import { VestingConditionStrategyFactory } from "vesting_schedule_generator_v1/vesting-condition-strategies/factory";
 
 const packagePath = "./sample_ocf_folders/acme_holdings_limited";
 const securityId = "equity_compensation_issuance_01";
@@ -7,15 +11,40 @@ const ocfPackage: OcfPackageContent = readOcfPackage(packagePath);
 
 try {
   const checkDateString = "2020-06-15";
-  const vestingStatus = new VestingScheduleService(
+  const checkDate = parseISO(checkDateString);
+  const scheduleGenerator = new VestingScheduleGenerator(
     ocfPackage,
-    securityId
-  ).getVestingStatus(checkDateString);
+    ExecutionPathBuilder,
+    VestingConditionStrategyFactory
+  );
+  const schedule = scheduleGenerator.generateSchedule(securityId);
+  const scheduleWithStatus = scheduleGenerator.getStatus(schedule, securityId); // known to be sorted in ascending order
 
-  if (!vestingStatus) {
+  const getlatestInstallment = (
+    schedule: VestingScheduleStatus[],
+    checkDate: Date
+  ) => {
+    let latestInstallment: VestingScheduleStatus | null = null;
+    for (let installment of schedule) {
+      if (isBefore(installment.date, checkDate)) {
+        if (
+          latestInstallment === null ||
+          isBefore(latestInstallment.date, checkDate)
+        ) {
+          latestInstallment = installment;
+        }
+      }
+    }
+    return latestInstallment;
+  };
+
+  const latestInstallment = getlatestInstallment(scheduleWithStatus, checkDate);
+
+  if (latestInstallment === null) {
     console.log("The date provided is before the vesting start date");
+  } else {
+    console.table(latestInstallment);
   }
-  console.table(vestingStatus);
 } catch (error) {
   if (error instanceof Error) {
     console.error("Error message:", error.message);
