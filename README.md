@@ -2,9 +2,9 @@
 
 Version: 0.1.0
 
-Date: 2 November 2024
+Date: 01 February 2025
 
-This toolset provides a growing toolset to help validate and utilize Open Cap Table Format datasets.
+A growing toolset to help validate and utilize Open Cap Table Format datasets.
 
 Currently, the dataset includes 5 tools:
 
@@ -16,59 +16,96 @@ This tool creates a workable JSON object of the content of an OCF folder from th
 const ocfPackage = readOcfPackage(ocfPackageFolderDir);
 ```
 
-## Vesting Schedule Generator
+## Generate Vesting Schedule - Version 1
 
-This tool creates a JSON array of the vesting periods for a "time standard" (i.e. a schedule in the form of " 4 years monthly" periods ).The tool also calculates and shows exercise transactions for the equity compensation issuance.
+The following describes the vesting schedule generator found in the `vesting_shedule_generator_v1` directory.
+
+This tool creates an array `VestingInstallment`s representing a vesting schedule, in ascending order by date.
+
+```ts
+{
+  date: Date;
+  quantity: number;
+}
+[];
+```
 
 The tool can handle any [allocation-type](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/VestingTerms/#object-vesting-terms), any [day_of_month](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/types/vesting/VestingPeriodInMonths/#type-vesting-period-in-months) designation, and any upfront vesting or cliff periods.
 
 ### 📝 Notes
 
-This tool utilizes a `cliff_length` field within the `Vesting_Conditions` object, which is not in the current released version of OCF as of November 2, 2024. [Open-Cap-Table-Format-OCT Issue #514](https://github.com/Open-Cap-Table-Coalition/Open-Cap-Format-OCF/issues/514#issue-2468182057)
+The vesting schedule generator found in the `vesting_shedule_generator_v1` directory does not include any additional tooling to create cliffs.
 
-### 💡Conventions
+The vesting schedule generator found in the `vesting_schedule_generator` directory utilizes a `cliff_length` field within the `Vesting Schedule Relative Trigger` object, which is not in the current released version of OCF as of February 1, 2025. [Open-Cap-Table-Format-OCT Issue #514](https://github.com/Open-Cap-Table-Coalition/Open-Cap-Format-OCF/issues/514#issue-2468182057)
 
-If the vesting commencement date or cliff occurs before the grant date, the grant date is treated as a cliff. [OCF-Tools PR #112](https://github.com/Open-Cap-Table-Coalition/OCF-Tools/pull/112)
-
-If both `vestings` and `vesting_terms_id` are present, `vestings` takes precedence. [Open-Cap_Format-OCF PR #515](https://github.com/Open-Cap-Table-Coalition/Open-Cap-Format-OCF/pull/515)
-
-If neither `vestings` nor `vesting_terms_id` are present, then the shares are treated as fully vested on issuance. [Open-Cap_Format-OCF PR #515](https://github.com/Open-Cap-Table-Coalition/Open-Cap-Format-OCF/pull/515)
-
-### 🔧 Usage
-
-The `VestingScheduleService` takes the `ocfPackage` returned from `readOcfPackage` and an equity compensation issuance [`security_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as parameters.
-
-```typescript
-const vestingScheduleService = new VestingScheduleService(
-  ocfPackage,
-  equityCompensationIssuanceSecurityId
-);
-```
-
-`.getFullSchedule()` returns an array of the following objects:
-
-```typescript
+```ts
 {
-   Date: string;
-   "Event Type": "Start" | "Cliff" | "Vesting" | "Exercise";
-   "Event Quantity": number;
-   "Remaining Unvested": number;
-   "Cumulative Vested": number;
-   "Became Exercisable": number;
-   "Cumulative Exercised": number;
-   "Available to Exercise": number;
+  type: "VESTING_SCHEDULE_RELATIVE";
+  period: Period_Months | Period_Days;
+  relative_to_condition_id: string;
+  cliff_length?: number;
 }
 ```
 
-`.getVestingStatus(checkDateString)` provides the above as of a given date.
+### 🔧 Usage
+
+A `VestingScheduleGenerator` class instance is instantiated with:
+
+- the `ocfPackage` returned from `readOcfPackage`,
+- an `ExecutionPathBuilder` class, and
+- a `VestingConditionStrategyFactory class.
+
+A vesting schedule is created by providing an equity compensation issuance [`security_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as a parameter to the `generateSchedule` method.
+
+```ts
+const generator = new VestingScheduleGenerator(
+  ocfPackage,
+  ExecutionPathBuilder,
+  VestingConditionStrategyFactory
+);
+
+const schedule = generator.generateSchedule("equity_compenstion_issuance_01");
+```
+
+A more detailed vesting schedule with the following additional information:
+
+```ts
+{
+  becameVested: number;
+  totalVested: number;
+  totalUnvested: number;
+  becameExercisable: number;
+}
+```
+
+is obtained by providing a vesting schedule and an equity compensation issuance [`security_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as parameters to the `getStatus` method.
+
+```ts
+const generator = new VestingScheduleGenerator(
+  ocfPackage,
+  ExecutionPathBuilder,
+  VestingConditionStrategyFactory
+)
+
+const schedule = generator.generateSchedule("equity_compenstion_issuance_01")
+const detailedSchedule = generator.getStatus(schedule, "equity_compensation_01")
+
+TODO: Improve the workflow around obtaining the detailed schedule, e.g., by deducing the security_id from the provided vesting schedule
+
+```
 
 ### 🔍 Examples
 
-Run `npm run print:vesting_schedule.ts`, `npm run print:vesting_status.ts`, and `npm run print:iso_nso_test.ts` in the command line to see example results printed to console.
+The following commands print examples to the console
+
+```bash
+npm run print:vesting_schedule.ts
+npm run print:vesting_status.ts
+```
 
 ## ISO / NSO Split Calculator
 
-This tool allows a user to determine the ISO / NSO split for equity compensation issuances for a given stakeholder. This tool shows the split of NSO/ISO for each vesting period of the relative equity compensation issuances.
+This tool allows a user to determine the ISO / NSO split for equity compensation issuances for a given stakeholder.
 
 ### ⚠️ **Warning**
 
@@ -76,7 +113,7 @@ This tool allows a user to determine the ISO / NSO split for equity compensation
 
 ### 📝 Notes
 
-This tool uses the vesting schedule generator under the hood and will only work for vesting schedules that can be generated using that tool.
+This tool uses vesting_schedule_generator_v1 under the hood.
 
 This tool utilizes a `valuation_id` within the `Equity_Compensation_Issuance` object, which is not in the current released version of OCF as of November 2, 2024. [Open-Cap-Table-Format-OCT Issue #535](https://github.com/Open-Cap-Table-Coalition/Open-Cap-Format-OCF/issues/535#issue-2595216527)
 
@@ -90,25 +127,28 @@ This tool throws an error if neither a `valuation_id` nor an `exercise_price` is
 
 The `ISONSOCalculatorService` takes the `ocfPackage` returned from `readOcfPackage` and an equity compensation issuance [`stakeholder_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as parameters.
 
-```typescript
-const isoNsoService = new ISONSOCalculatorService(ocfPackage, valuations);
+```ts
+const ocfPackage = readOcfPackage(ocfPackageFolderDir);
+const calculator = new ISOCalculator(ocfPackage);
+const results = calculator.execute(stakeholderId);
 ```
 
-`.Results` returns an array of the following objects:
+`.execute()` returns an array of the following objects:
 
-```typescript
+```ts
 {
-  Year: number;
-  Date: string;
-  "Security Id": string;
-  "Event Type": "Start" | "Cliff" | "Vesting" | "Exercise";
-  "Became Exercisable": number;
-  "FMV": number;
-  StartingCapacity: number;
-  ISOShares: number;
-  NSOShares: number;
-  CapacityUtilized: number;
-  CapacityRemaining: number;
+  Year: number,
+  date: Date,
+  quantity: number,
+  grantDate: Date,
+  securityId: string,
+  becameExercisable: number,
+  FMV: number,
+  StartingCapacity: number,
+  ISOShares: number,
+  NSOShares: number,
+  CapacityUtilized: number,
+  CapacityRemaining: number,
 }
 ```
 
