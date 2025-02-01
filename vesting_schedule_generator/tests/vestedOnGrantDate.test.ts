@@ -1,12 +1,10 @@
-import { transcode } from "buffer";
 import { VestingInstallment, VestingScheduleService } from "../index";
 import { OcfPackageContent } from "../../read_ocf_package";
 import {
   TX_Equity_Compensation_Issuance,
   TX_Vesting_Start,
-  VestingCondition,
   VestingTerms,
-} from "../../types";
+} from "../types";
 
 const vestingTerms: VestingTerms[] = [];
 
