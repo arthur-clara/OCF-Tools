@@ -16,19 +16,14 @@ This tool creates a workable JSON object of the content of an OCF folder from th
 const ocfPackage = readOcfPackage(ocfPackageFolderDir);
 ```
 
-## Generate Vesting Schedule - Version 1
+## Generate Vesting Schedule v1
 
 The following describes the vesting schedule generator found in the `vesting_shedule_generator_v1` directory.
+An alternative implementation is found in the `vesting_schedule_generator` directory.
 
-This tool creates an array `VestingInstallment`s representing a vesting schedule, in ascending order by date.
+The vesting schedule generator
 
-```ts
-{
-  date: Date;
-  quantity: number;
-}
-[];
-```
+This tool generates an array of objects representing a vesting schedule, in ascending order by date.
 
 The tool can handle any [allocation-type](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/VestingTerms/#object-vesting-terms), any [day_of_month](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/types/vesting/VestingPeriodInMonths/#type-vesting-period-in-months) designation, and any upfront vesting or cliff periods.
 
@@ -55,16 +50,28 @@ A `VestingScheduleGenerator` class instance is instantiated with:
 - an `ExecutionPathBuilder` class, and
 - a `VestingConditionStrategyFactory class.
 
-A vesting schedule is created by providing an equity compensation issuance [`security_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as a parameter to the `generateSchedule` method.
-
 ```ts
 const generator = new VestingScheduleGenerator(
   ocfPackage,
   ExecutionPathBuilder,
   VestingConditionStrategyFactory
 );
+```
 
+A vesting schedule is created by providing an equity compensation issuance [`security_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as a parameter to the `generateSchedule` method.
+
+```ts
 const schedule = generator.generateSchedule("equity_compenstion_issuance_01");
+```
+
+which returns an array of `VestingInstallment` objects
+
+```ts
+{
+  date: Date;
+  quantity: number;
+}
+[];
 ```
 
 A more detailed vesting schedule with the following additional information:
@@ -78,20 +85,21 @@ A more detailed vesting schedule with the following additional information:
 }
 ```
 
-is obtained by providing a vesting schedule and an equity compensation issuance [`security_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as parameters to the `getStatus` method.
+is obtained by providing an equity compensation issuance [`security_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as a parameter to the `generateScheduleWithStatus` method.
 
 ```ts
-const generator = new VestingScheduleGenerator(
-  ocfPackage,
-  ExecutionPathBuilder,
-  VestingConditionStrategyFactory
-)
+const scheduleWithStatus = generator.generateScheduleWithStatus(
+  "equity_compensation_01"
+);
+```
 
-const schedule = generator.generateSchedule("equity_compenstion_issuance_01")
-const detailedSchedule = generator.getStatus(schedule, "equity_compensation_01")
+The "status" described above can be determined as as of a given date by provided a dateString in 'YYYY-MM-DD' format and an equity compensation issuance [`security_id`](https://open-cap-table-coalition.github.io/Open-Cap-Format-OCF/schema_markdown/schema/objects/transactions/issuance/EquityCompensationIssuance/#object-equity-compensation-issuance-transaction) as parameters to the `getStatusAsOfDate` method.
 
-TODO: Improve the workflow around obtaining the detailed schedule, e.g., by deducing the security_id from the provided vesting schedule
-
+```ts
+const statusAsOfDate = generator.getStatusAsOfDate(
+  "equity_compensation_01",
+  "2020-06-15"
+);
 ```
 
 ### 🔍 Examples

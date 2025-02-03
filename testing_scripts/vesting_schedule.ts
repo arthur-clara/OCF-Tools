@@ -11,5 +11,5 @@ const vestingSchedule = new VestingScheduleGenerator(
   ocfPackage,
   ExecutionPathBuilder,
   VestingConditionStrategyFactory
-).generateSchedule(securityId);
+).generateScheduleWithStatus(securityId);
 console.table(vestingSchedule);

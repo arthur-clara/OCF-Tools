@@ -7,7 +7,7 @@ import {
   VestingInstallment,
   VestingScheduleStatus,
 } from "./types/index.ts";
-import { compareAsc, parseISO } from "date-fns";
+import { compareAsc, isBefore, parseISO } from "date-fns";
 import { VestingInstallmentBuilder } from "./VestingInstallmentBuilder.ts";
 import { ExecutionPathBuilder } from "./ExecutionPathBuilder.ts";
 import {
@@ -180,8 +180,9 @@ export class VestingScheduleGenerator {
     return processedSchedule;
   }
 
-  public getStatus(vestingSchedule: VestingInstallment[], securityId: string) {
+  public generateScheduleWithStatus(securityId: string) {
     const ocfData = this.getOCFData(securityId);
+    const vestingSchedule = this.generateSchedule(securityId);
 
     const EARLY_EXERCISABLE = !!ocfData.issuanceTransaction.early_exercisable;
     const totalQuantity = parseFloat(ocfData.issuanceTransaction.quantity);
@@ -224,5 +225,36 @@ export class VestingScheduleGenerator {
     }
 
     return vestingScheduleWithStatus;
+  }
+
+  getStatusAsOfDate(securityId: string, dateString: string) {
+    const dateFormatRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+    if (!dateFormatRegex.test(dateString)) {
+      console.error("Invalid date format.  Use 'YYYY-MM-DD'.");
+      return null;
+    }
+
+    const checkDate = parseISO(dateString);
+
+    const vestingScheduleWithStatus =
+      this.generateScheduleWithStatus(securityId);
+
+    let latestInstallment: VestingScheduleStatus | null = null;
+    for (let installment of vestingScheduleWithStatus) {
+      if (isBefore(installment.date, checkDate)) {
+        if (
+          latestInstallment === null ||
+          isBefore(latestInstallment.date, checkDate)
+        ) {
+          latestInstallment = installment;
+        }
+      }
+    }
+
+    if (latestInstallment === null) {
+      console.error("The date provided is before the vesting start date");
+    } else {
+      console.table(latestInstallment);
+    }
   }
 }
