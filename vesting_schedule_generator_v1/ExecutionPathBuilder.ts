@@ -17,7 +17,6 @@ import { compareAsc } from "date-fns";
 export class ExecutionPathBuilder {
   private visited: Set<string>;
   private executionPath: Map<string, GraphNode>;
-  private recusionStack: Set<string>;
 
   constructor(
     private graph: Map<string, GraphNode>,
@@ -27,7 +26,6 @@ export class ExecutionPathBuilder {
   ) {
     this.visited = new Set<string>();
     this.executionPath = new Map<string, GraphNode>();
-    this.recusionStack = new Set<string>();
   }
 
   public build(): Map<string, GraphNode> {
@@ -36,9 +34,6 @@ export class ExecutionPathBuilder {
   }
 
   private processSiblings(siblingIds: string[]): void {
-    // Check for cycles before processing
-    this.detectCycles(siblingIds);
-
     const validNodes = this.getValidNodes(siblingIds);
     if (validNodes.length === 0) return;
 
@@ -51,17 +46,6 @@ export class ExecutionPathBuilder {
     // Process children of earliest node as next sibling group
     if (earliestNode.next_condition_ids.length > 0) {
       this.processSiblings(earliestNode.next_condition_ids);
-    }
-  }
-
-  private detectCycles(nodeIds: string[]): void {
-    for (const nodeId of nodeIds) {
-      if (this.recusionStack.has(nodeId)) {
-        throw new Error(
-          `Cycle detected involving the vesting condition with id ${nodeId}`
-        );
-      }
-      this.recusionStack.add(nodeId);
     }
   }
 

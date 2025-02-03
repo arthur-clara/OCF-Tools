@@ -14,6 +14,7 @@ import {
   IVestingConditionStrategyFactory,
   VestingConditionStrategyFactory,
 } from "./vesting-condition-strategies/factory.ts";
+import { detectCycles } from "./detect-cycles.ts";
 
 export class VestingScheduleGenerator {
   constructor(
@@ -61,6 +62,9 @@ export class VestingScheduleGenerator {
 
     // Create vesting graph
     const { graph, rootNodes } = createVestingGraph(graphNodes);
+
+    // Detect cycles
+    detectCycles(graph);
 
     // Create the execution stack
     const executionPathBuilder = new this.executionPathBuilder(
