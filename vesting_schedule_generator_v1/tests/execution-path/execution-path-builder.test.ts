@@ -8,6 +8,7 @@ import { ExecutionPathBuilder } from "../../ExecutionPathBuilder";
 import { VestingConditionStrategyFactory } from "../../vesting-condition-strategies/factory";
 import { createVestingGraph } from "../../create-vesting-graph";
 import { OcfPackageContent } from "read_ocf_package";
+import { detectCycles } from "../../detect-cycles";
 
 const getExecutionPath = (
   ocfPackage: OcfPackageContent,
@@ -47,6 +48,8 @@ const getExecutionPath = (
    * Create vesting graph
    ******************************/
   const { graph, rootNodes } = createVestingGraph(graphNodes);
+
+  detectCycles(graph);
 
   /******************************
    * Create the execution stack
