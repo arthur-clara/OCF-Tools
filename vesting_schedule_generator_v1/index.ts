@@ -199,7 +199,6 @@ export class VestingScheduleGenerator {
 
       const status: VestingScheduleStatus = {
         ...installment,
-        becameVested: installment.quantity,
         totalVested,
         totalUnvested,
         becameExercisable: EARLY_EXERCISABLE ? 0 : installment.quantity,
@@ -217,7 +216,6 @@ export class VestingScheduleGenerator {
       vestingScheduleWithStatus.unshift({
         date: parseISO(ocfData.issuanceTransaction.date),
         quantity: 0,
-        becameVested: 0,
         totalVested: 0,
         totalUnvested: totalQuantity,
         becameExercisable: EARLY_EXERCISABLE ? totalQuantity : 0,

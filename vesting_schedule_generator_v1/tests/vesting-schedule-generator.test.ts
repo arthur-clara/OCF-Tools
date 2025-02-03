@@ -37,7 +37,9 @@ const getSchedule = (ocfPackage: OcfPackageContent) => {
     VestingConditionStrategyFactory
   );
 
-  return generator.generateSchedule("equity_compensation_issuance_01");
+  return generator.generateScheduleWithStatus(
+    "equity_compensation_issuance_01"
+  );
 };
 
 const getTotalVested = (schedule: VestingInstallment[]) => {

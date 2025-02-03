@@ -311,7 +311,6 @@ export interface VestingInstallment {
 }
 
 export interface VestingScheduleStatus extends VestingInstallment {
-  becameVested: number;
   totalVested: number;
   totalUnvested: number;
   becameExercisable: number;

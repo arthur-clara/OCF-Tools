@@ -64,7 +64,7 @@ export class ISOCalculator {
         VestingConditionStrategyFactory
       );
 
-      const schedule = generator.generateSchedule(securityId);
+      const schedule = generator.generateScheduleWithStatus(securityId);
 
       /*************************************************************************************
        * Get the relevant ocfData
@@ -80,25 +80,23 @@ export class ISOCalculator {
        * Add details regarding quantity that became exercisable
        *********************************************************/
 
-      const vestingScheduleWithStatus = generator.getStatus(
-        schedule,
-        securityId
-      );
+      // const vestingScheduleWithStatus = generator.getStatus(
+      //   schedule,
+      //   securityId
+      // );
 
       /**************************************************************
        * Add additional information required for the ISO calculation
        **************************************************************/
 
-      const installments: Installment[] = vestingScheduleWithStatus.map(
-        (status) => ({
-          ...status,
-          securityId,
-          grantDate: ocfData.issuanceTransaction.date,
-          Year: status.date.getFullYear(),
-          FMV: this.getFMV(ocfData),
-          Grant_Type: ocfData.issuanceTransaction.option_grant_type,
-        })
-      );
+      const installments: Installment[] = schedule.map((status) => ({
+        ...status,
+        securityId,
+        grantDate: ocfData.issuanceTransaction.date,
+        Year: status.date.getFullYear(),
+        FMV: this.getFMV(ocfData),
+        Grant_Type: ocfData.issuanceTransaction.option_grant_type,
+      }));
 
       return installments;
     });

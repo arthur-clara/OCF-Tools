@@ -78,7 +78,6 @@ A more detailed vesting schedule with the following additional information:
 
 ```ts
 {
-  becameVested: number;
   totalVested: number;
   totalUnvested: number;
   becameExercisable: number;
