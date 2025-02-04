@@ -9,6 +9,9 @@ import { ocfPackage as custom_vesting_100pct_upfront } from "./testOcfPackages/d
 import { ocfPackage as multi_tranche_event_based } from "./testOcfPackages/documentation_examples/multi-tranche-event-based";
 import { ocfPackage as path_dependent_milestone_vesting } from "./testOcfPackages/documentation_examples/path-dependent-milestone-vesting";
 import { ocfPackage as grant_date_after_VCD_no_cliff } from "./testOcfPackages/grant_date_after_VCD_no_cliff";
+import { ocfPackage as two_independent_events_with_expiration_dates } from "./testOcfPackages/two-independent-events-with-expiration-dates";
+import { ocfPackage as two_interdependent_events_with_expiration_dates } from "./testOcfPackages/two-interdependent-events-with-expiration-dates";
+
 import type {
   TX_Vesting_Event,
   TX_Vesting_Start,
@@ -744,5 +747,465 @@ describe("Grant Date After VCD No Cliff", () => {
     expect(lastDate).toStrictEqual(
       parse("2028-06-01", "yyyy-MM-dd", new Date())
     );
+  });
+});
+
+/******************************
+ * Two Independent Events With Expiration Dates
+ ******************************/
+describe("Two independent events with expiration dates", () => {
+  const ocfPackage = { ...two_independent_events_with_expiration_dates };
+
+  const start_event: TX_Vesting_Start = {
+    id: "vesting-start",
+    object_type: "TX_VESTING_START",
+    date: "2025-01-01",
+    security_id: "equity_compensation_issuance_01",
+    vesting_condition_id: "vesting-start",
+  };
+
+  ocfPackage.transactions.push(start_event);
+
+  const totalSharesUnderlying = getTotalSharesUnderlying(ocfPackage);
+
+  test("The total shares underlying should equal 4800", () => {
+    expect(totalSharesUnderlying).toEqual(4800);
+  });
+
+  describe("Both events expire", () => {
+    const schedule = getSchedule(ocfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(ocfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("No shares should vest", () => {
+      expect(aggregateVested).toEqual(0);
+      expect(lastInstallmentTotalVested).toEqual(0);
+      expect(lastInstallmentTotalUnvested).toEqual(totalSharesUnderlying);
+    });
+
+    test("No shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(0);
+    });
+  });
+
+  describe("A expires then B occurs", () => {
+    const event1: TX_Vesting_Event = {
+      id: "B-occurs-after-A-expires",
+      object_type: "TX_VESTING_EVENT",
+      date: "2026-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "B-occurs-after-A-expires",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal 75% of the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying * 0.75);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying * 0.75);
+      expect(lastInstallmentTotalUnvested).toEqual(
+        totalSharesUnderlying * 0.25
+      );
+    });
+
+    test("75% of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying * 0.75);
+    });
+  });
+
+  describe("A occurs then B expires", () => {
+    const event1: TX_Vesting_Event = {
+      id: "A-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "A-occurs",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal 25% of the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying * 0.25);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying * 0.25);
+      expect(lastInstallmentTotalUnvested).toEqual(
+        totalSharesUnderlying * 0.75
+      );
+    });
+
+    test("25% of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying * 0.25);
+    });
+  });
+
+  describe("A occurs then B occurs", () => {
+    const event1: TX_Vesting_Event = {
+      id: "A-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "A-occurs",
+    };
+
+    const event2: TX_Vesting_Event = {
+      id: "B-occurs-after-A-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2026-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "B-occurs-after-A-occurs",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1, event2],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying);
+      expect(lastInstallmentTotalUnvested).toEqual(0);
+    });
+
+    test("All of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying);
+    });
+  });
+
+  describe("A expires after B occurs", () => {
+    const event1: TX_Vesting_Event = {
+      id: "B-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "B-occurs",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal 75% of the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying * 0.75);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying * 0.75);
+      expect(lastInstallmentTotalUnvested).toEqual(
+        totalSharesUnderlying * 0.25
+      );
+    });
+
+    test("75% of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying * 0.75);
+    });
+  });
+
+  describe("A occurs after B occurs", () => {
+    const event1: TX_Vesting_Event = {
+      id: "B-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "B-occurs",
+    };
+
+    const event2: TX_Vesting_Event = {
+      id: "A-occurs-after-B-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-12-31",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "A-occurs-after-B-occurs",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1, event2],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying);
+      expect(lastInstallmentTotalUnvested).toEqual(0);
+    });
+
+    test("All of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying);
+    });
+  });
+});
+
+/******************************
+ * Two Interdependent Events With Expiration Dates
+ ******************************/
+describe("Two interdependent events with expiration dates", () => {
+  const ocfPackage = { ...two_interdependent_events_with_expiration_dates };
+
+  const start_event: TX_Vesting_Start = {
+    id: "vesting-start",
+    object_type: "TX_VESTING_START",
+    date: "2025-01-01",
+    security_id: "equity_compensation_issuance_01",
+    vesting_condition_id: "vesting-start",
+  };
+
+  ocfPackage.transactions.push(start_event);
+
+  const totalSharesUnderlying = getTotalSharesUnderlying(ocfPackage);
+
+  test("The total shares underlying should equal 4800", () => {
+    expect(totalSharesUnderlying).toEqual(4800);
+  });
+
+  describe("Both events expire", () => {
+    const schedule = getSchedule(ocfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(ocfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("No shares should vest", () => {
+      expect(aggregateVested).toEqual(0);
+      expect(lastInstallmentTotalVested).toEqual(0);
+      expect(lastInstallmentTotalUnvested).toEqual(totalSharesUnderlying);
+    });
+
+    test("No shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(0);
+    });
+  });
+
+  describe("A expires then B occurs", () => {
+    const event1: TX_Vesting_Event = {
+      id: "B-occurs-after-A-expires",
+      object_type: "TX_VESTING_EVENT",
+      date: "2026-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "B-occurs-after-A-expires",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal 75% of the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying * 0.75);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying * 0.75);
+      expect(lastInstallmentTotalUnvested).toEqual(
+        totalSharesUnderlying * 0.25
+      );
+    });
+
+    test("75% of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying * 0.75);
+    });
+  });
+
+  describe("A occurs then B expires", () => {
+    const event1: TX_Vesting_Event = {
+      id: "A-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "A-occurs",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal 25% of the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying * 0.25);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying * 0.25);
+      expect(lastInstallmentTotalUnvested).toEqual(
+        totalSharesUnderlying * 0.75
+      );
+    });
+
+    test("25% of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying * 0.25);
+    });
+  });
+
+  describe("A occurs then B occurs", () => {
+    const event1: TX_Vesting_Event = {
+      id: "A-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "A-occurs",
+    };
+
+    const event2: TX_Vesting_Event = {
+      id: "B-occurs-after-A-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2026-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "B-occurs-after-A-occurs",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1, event2],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying);
+      expect(lastInstallmentTotalUnvested).toEqual(0);
+    });
+
+    test("All of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying);
+    });
+  });
+
+  describe("A expires after B occurs", () => {
+    const event1: TX_Vesting_Event = {
+      id: "B-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "B-occurs",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal 75% of the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying * 0.75);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying * 0.75);
+      expect(lastInstallmentTotalUnvested).toEqual(
+        totalSharesUnderlying * 0.25
+      );
+    });
+
+    test("75% of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying * 0.75);
+    });
+  });
+
+  describe("A occurs after B occurs", () => {
+    const event1: TX_Vesting_Event = {
+      id: "B-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-06-01",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "B-occurs",
+    };
+
+    const event2: TX_Vesting_Event = {
+      id: "A-occurs-after-B-occurs",
+      object_type: "TX_VESTING_EVENT",
+      date: "2025-12-31",
+      security_id: "equity_compensation_issuance_01",
+      vesting_condition_id: "A-occurs-after-B-occurs",
+    };
+
+    const newOcfPackage = {
+      ...ocfPackage,
+      transactions: [...ocfPackage.transactions, event1, event2],
+    };
+
+    const schedule = getSchedule(newOcfPackage);
+    const totalSharesUnderlying = getTotalSharesUnderlying(newOcfPackage);
+    const aggregateVested = getAggregateVested(schedule);
+    const aggregateBecameExercisable = getAggregateBecameExecisable(schedule);
+    const lastInstallmentTotalVested = getLastInstallmentTotalVested(schedule);
+    const lastInstallmentTotalUnvested =
+      getLastInstallmentTotalUnvested(schedule);
+
+    test("Final total vested should equal the total shares underyling", () => {
+      expect(aggregateVested).toEqual(totalSharesUnderlying);
+      expect(lastInstallmentTotalVested).toEqual(totalSharesUnderlying);
+      expect(lastInstallmentTotalUnvested).toEqual(0);
+    });
+
+    test("All of the shares should become exercisable", () => {
+      expect(aggregateBecameExercisable).toEqual(totalSharesUnderlying);
+    });
   });
 });
