@@ -17,6 +17,25 @@
           "trigger": {
             "type": "VESTING_START_DATE"
           },
+          "next_condition_ids": ["cliff"]
+        },
+        {
+          "id": "cliff",
+          "description": "25% on the one-year anniversary.",
+          "portion": {
+            "numerator": "12",
+            "denominator": "48"
+          },
+          "trigger": {
+            "type": "VESTING_SCHEDULE_RELATIVE",
+            "period": {
+              "length": 12,
+              "type": "MONTHS",
+              "occurrences": 1,
+              "day_of_month": "VESTING_START_DAY_OR_LAST_DAY_OF_MONTH"
+            },
+            "relative_to_condition_id": "start_condition"
+          },
           "next_condition_ids": ["monthly_vesting_condition"]
         },
         {
@@ -31,10 +50,10 @@
             "period": {
               "length": 1,
               "type": "MONTHS",
-              "occurrences": 48,
+              "occurrences": 36,
               "day_of_month": "VESTING_START_DAY_OR_LAST_DAY_OF_MONTH"
             },
-            "relative_to_condition_id": "start_condition"
+            "relative_to_condition_id": "cliff"
           },
           "next_condition_ids": []
         }
