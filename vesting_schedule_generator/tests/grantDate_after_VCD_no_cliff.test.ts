@@ -5,7 +5,7 @@ import {
   TX_Vesting_Start,
   VestingCondition,
   VestingTerms,
-} from "../../types";
+} from "../types";
 
 const vestingConditions: VestingCondition[] = [
   {
@@ -43,6 +43,7 @@ const vestingConditions: VestingCondition[] = [
 const vestingTerms: VestingTerms[] = [
   {
     id: "four_year_monthly_one_year_cliff_cumulative_round_down",
+    description: "four_year_monthly_one_year_cliff_cumulative_round_down",
     object_type: "VESTING_TERMS",
     name: "Four Year / One Year Cliff - Cumulative Round Down",
     allocation_type: "CUMULATIVE_ROUND_DOWN",

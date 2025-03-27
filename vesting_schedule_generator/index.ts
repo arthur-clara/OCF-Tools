@@ -3,7 +3,7 @@ import type {
   TX_Equity_Compensation_Exercise,
   VestingTerms,
   Transaction,
-} from "../types";
+} from "./types";
 import { ExerciseTransactionsService } from "./exercise_transactions";
 import { VestingCalculatorService } from "./vesting_calculator";
 import { VestingInitializationService } from "./vesting_initialization";

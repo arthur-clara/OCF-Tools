@@ -1,5 +1,9 @@
-import { VestingScheduleService } from "../vesting_schedule_generator";
+import { VestingScheduleGenerator } from "vesting_schedule_generator_v1";
 import { OcfPackageContent, readOcfPackage } from "../read_ocf_package";
+import { isBefore, parseISO } from "date-fns";
+import { VestingScheduleStatus } from "../vesting_schedule_generator_v1/types";
+import { ExecutionPathBuilder } from "vesting_schedule_generator_v1/ExecutionPathBuilder";
+import { VestingConditionStrategyFactory } from "vesting_schedule_generator_v1/vesting-condition-strategies/factory";
 
 const packagePath = "./sample_ocf_folders/acme_holdings_limited";
 const securityId = "equity_compensation_issuance_01";
@@ -7,15 +11,12 @@ const ocfPackage: OcfPackageContent = readOcfPackage(packagePath);
 
 try {
   const checkDateString = "2020-06-15";
-  const vestingStatus = new VestingScheduleService(
+  const scheduleGenerator = new VestingScheduleGenerator(
     ocfPackage,
-    securityId
-  ).getVestingStatus(checkDateString);
-
-  if (!vestingStatus) {
-    console.log("The date provided is before the vesting start date");
-  }
-  console.table(vestingStatus);
+    ExecutionPathBuilder,
+    VestingConditionStrategyFactory
+  );
+  scheduleGenerator.getStatusAsOfDate(securityId, checkDateString);
 } catch (error) {
   if (error instanceof Error) {
     console.error("Error message:", error.message);

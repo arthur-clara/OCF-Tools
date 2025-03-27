@@ -1,11 +1,11 @@
 import { VestingInstallment, VestingScheduleService } from "../index";
-import { OcfPackageContent } from "../../read_ocf_package";
+import { OcfPackageContent } from "read_ocf_package";
 import {
   TX_Equity_Compensation_Issuance,
   TX_Vesting_Start,
   VestingCondition,
   VestingTerms,
-} from "../../types";
+} from "../types";
 
 const vestingConditions: VestingCondition[] = [
   {
@@ -35,8 +35,8 @@ const vestingConditions: VestingCondition[] = [
         day_of_month: "VESTING_START_DAY_OR_LAST_DAY_OF_MONTH",
       },
       relative_to_condition_id: "start_condition",
+      cliff_length: 12,
     },
-    cliff_length: 12,
     next_condition_ids: [],
   },
 ];
@@ -44,6 +44,7 @@ const vestingConditions: VestingCondition[] = [
 const vestingTerms: VestingTerms[] = [
   {
     id: "four_year_monthly_one_year_cliff_cumulative_round_down",
+    description: "four_year_monthly_one_year_cliff_cumulative_round_down",
     object_type: "VESTING_TERMS",
     name: "Four Year / One Year Cliff - Cumulative Round Down",
     allocation_type: "CUMULATIVE_ROUND_DOWN",

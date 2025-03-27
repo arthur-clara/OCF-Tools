@@ -1,11 +1,9 @@
 import {
   Transaction,
-  TX_Equity_Compensation_Exercise,
   TX_Equity_Compensation_Issuance,
   TX_Vesting_Start,
-  vestingObject,
   VestingTerms,
-} from "../types";
+} from "./types";
 
 export class VestingInitializationService {
   constructor(

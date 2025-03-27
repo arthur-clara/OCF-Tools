@@ -1,5 +1,5 @@
 import { VestingInstallment } from ".";
-import { TX_Equity_Compensation_Exercise } from "../types";
+import { TX_Equity_Compensation_Exercise } from "./types";
 
 export class ExerciseTransactionsService {
   private cumulativeExercised = 0;

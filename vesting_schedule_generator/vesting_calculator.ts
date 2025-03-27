@@ -7,7 +7,7 @@ import {
   VestingCondition_VestingStart,
   vestingObject,
   VestingTerms,
-} from "../types";
+} from "./types";
 
 export class VestingCalculatorService {
   private vestingMode!: (
@@ -448,6 +448,6 @@ export class VestingCalculatorService {
     this.vestingSchedule.push(...events);
 
     // handle the first vesting event
-    this.handleFirstVestingDate(currentVestingCondition.cliff_length);
+    this.handleFirstVestingDate(currentVestingCondition.trigger.cliff_length);
   }
 }
