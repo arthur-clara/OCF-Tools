@@ -72,7 +72,10 @@ export class VestingRelativeStrategy extends VestingConditionStrategy<RelativeGr
     const installments = this.createAllInstallments(vestedCount);
     const installmentsWithTriggeredDate =
       this.processTriggeredDate(installments);
-    return installmentsWithTriggeredDate;
+    const installmentsWithCliff = this.processCliffDate(
+      installmentsWithTriggeredDate
+    );
+    return installmentsWithCliff;
   }
 
   private createAllInstallments(vestedCount: number): VestingInstallment[] {
@@ -222,5 +225,44 @@ export class VestingRelativeStrategy extends VestingConditionStrategy<RelativeGr
     );
 
     return vestingScheduleWithTriggeredDate;
+  }
+
+  private processCliffDate(
+    vestingSchedule: VestingInstallment[]
+  ): VestingInstallment[] {
+    let cliffInstallment = this.config.node.trigger.period.cliff_installment;
+
+    // If a cliffInstallment is not provided or less than 2, then we assume there is no cliff
+    if (cliffInstallment == null || cliffInstallment < 2) {
+      return vestingSchedule;
+    }
+
+    let accumulatedQuantity = 0;
+    const vestingScheduleWithCliff = vestingSchedule.reduce(
+      (acc, installment, index) => {
+        accumulatedQuantity += installment.quantity;
+
+        // Accumulate and move on if the installment is before the cliffInstallment
+        const installmentCount = index + 1; // 1-based index for the installment since the cliffInstallment is 1-based in the spec
+        if (installmentCount < cliffInstallment) {
+          return acc;
+        }
+
+        if (installmentCount === cliffInstallment) {
+          const modInstallment: VestingInstallment = {
+            ...installment,
+            quantity: accumulatedQuantity,
+          };
+
+          acc.push(modInstallment);
+          return acc;
+        }
+        acc.push(installment); // For all other installments after the cliff, just push the original installment
+        return acc;
+      },
+      [] as VestingInstallment[]
+    );
+
+    return vestingScheduleWithCliff;
   }
 }

@@ -53,12 +53,14 @@ export interface Period_Months {
   type: "MONTHS";
   occurrences: number;
   day_of_month: Day_Of_Month;
+  cliff_installment?: number;
 }
 
 export interface Period_Days {
   length: number;
   type: "DAYS";
   occurrences: number;
+  cliff_installment?: number;
 }
 
 export interface Trigger {
